@@ -1,12 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { api, type SessionDetailOut, type SessionOut } from "../api";
 
-export const Route = createFileRoute("/status")({
-  component: StatusPage,
-});
-
-function StatusPage() {
+export function StatusPage() {
   const [items, setItems] = useState<SessionOut[]>([]);
   const [selected, setSelected] = useState<SessionDetailOut | null>(null);
   const [err, setErr] = useState("");
@@ -90,3 +85,4 @@ function StatusPage() {
     </div>
   );
 }
+

@@ -1,7 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 
-export const Route = createFileRoute()({
-  component: () => (
+export function HomePage() {
+  return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold text-slate-900">Home</h1>
 
@@ -23,5 +23,6 @@ export const Route = createFileRoute()({
         </div>
       </div>
     </div>
-  ),
-});
+  );
+}
+

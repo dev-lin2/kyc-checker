@@ -1,12 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { api, type Decision } from "../api";
 
-export const Route = createFileRoute("/kyc")({
-  component: KycPage,
-});
-
-function KycPage() {
+export function KycPage() {
   const [externalUserId, setExternalUserId] = useState("user_123");
   const [sessionId, setSessionId] = useState<number | null>(null);
 
@@ -187,3 +182,4 @@ function KycPage() {
     </div>
   );
 }
+

@@ -1,12 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { api, type DocumentType } from "../api";
 
-export const Route = createFileRoute("/documents")({
-  component: DocumentsPage,
-});
-
-function DocumentsPage() {
+export function DocumentsPage() {
   const [sessionId, setSessionId] = useState<number>(1);
   const [docType, setDocType] = useState<DocumentType>("PASSPORT");
   const [docKey, setDocKey] = useState("docs/passport_1.jpg");
@@ -77,3 +72,4 @@ function DocumentsPage() {
     </div>
   );
 }
+
