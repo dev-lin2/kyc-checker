@@ -7,6 +7,7 @@ import { KycRecorder } from "../components/KycRecorder";
 export function KycPage() {
   const [externalUserId, setExternalUserId] = useState("user_123");
   const [sessionId, setSessionId] = useLocalStorage<number | null>("kyc.sessionId", null);
+  const [started, setStarted] = useState(false);
 
   // const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
 
@@ -22,6 +23,7 @@ export function KycPage() {
       const s = await api.createSession(externalUserId);
       setSessionId(s.id);
       setMsg(`Session created: ${s.id}`);
+      setStarted(true);
     } catch (e: any) {
       setErr(e.message || String(e));
     } finally {
@@ -38,7 +40,7 @@ export function KycPage() {
       {err ? <Alert variant="error">{err}</Alert> : null}
       {msg ? <Alert variant="success">{msg}</Alert> : null}
 
-      <Section title="1) Create Session">
+      <Section title="1) Start">
         <div className="grid gap-3 sm:grid-cols-3">
           <Field className="sm:col-span-2">
             <Label>external_user_id</Label>
@@ -46,16 +48,13 @@ export function KycPage() {
           </Field>
           <div className="flex items-end">
             <Button className="w-full" onClick={createSession} disabled={loading.create}>
-              {loading.create ? (<><Spinner className="mr-2"/>Creating...</>) : "Create Session"}
+              {loading.create ? (<><Spinner className="mr-2"/>Starting...</>) : "Start"}
             </Button>
           </div>
         </div>
-        <div className="mt-2 text-sm text-slate-700">
-          session_id: <span className="font-semibold">{sessionId ?? "-"}</span>
-        </div>
       </Section>
 
-      {sessionId ? (
+      {started ? (
         <Section title="2) Liveness Recording (video)">
           <KycRecorder onSubmit={async (blob) => {
             if (!sessionId) { setErr("Create session first"); return; }

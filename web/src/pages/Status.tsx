@@ -43,65 +43,61 @@ export function StatusPage() {
 
       {err ? <Alert variant="error">{err}</Alert> : null}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Users</CardTitle>
-              <div className="w-60">
-                <Field>
-                  <Label>Search</Label>
-                  <Input placeholder="id, user id, or status" value={query} onChange={(e) => setQuery(e.target.value)} />
-                </Field>
-              </div>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Users</CardTitle>
+            <div className="w-60">
+              <Field>
+                <Label>Search</Label>
+                <Input placeholder="user id" value={query} onChange={(e) => setQuery(e.target.value)} />
+              </Field>
             </div>
-          </CardHeader>
-          <CardBody>
-            {loading ? (
-              <div className="text-sm text-slate-600">Loading...</div>
-            ) : filtered.length === 0 ? (
-              <div className="text-sm text-slate-600">No sessions.</div>
-            ) : (
-              <div className="overflow-hidden rounded-lg border">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-slate-50 text-left text-slate-600">
-                    <tr>
-                      <th className="px-3 py-2 font-medium">User ID</th>
-                      <th className="px-3 py-2 font-medium">Doc Uploaded</th>
-                      <th className="px-3 py-2 font-medium">KYC Uploaded</th>
-                      <th className="px-3 py-2 font-medium">Percent</th>
-                      <th className="px-3 py-2 font-medium">Action</th>
+          </div>
+        </CardHeader>
+        <CardBody>
+          {loading ? (
+            <div className="text-sm text-slate-600">Loading...</div>
+          ) : filtered.length === 0 ? (
+            <div className="text-sm text-slate-600">No users.</div>
+          ) : (
+            <div className="overflow-hidden rounded-lg border w-full">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 text-left text-slate-600">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">User ID</th>
+                    <th className="px-3 py-2 font-medium">Doc Uploaded</th>
+                    <th className="px-3 py-2 font-medium">KYC Uploaded</th>
+                    <th className="px-3 py-2 font-medium">Percent</th>
+                    <th className="px-3 py-2 font-medium">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((u) => (
+                    <tr key={u.external_user_id} className="hover:bg-slate-50">
+                      <td className="px-3 py-2 font-medium text-slate-900">{u.external_user_id}</td>
+                      <td className="px-3 py-2">{u.doc_uploaded ? "Yes" : "No"}</td>
+                      <td className="px-3 py-2">{u.kyc_uploaded ? "Yes" : "No"}</td>
+                      <td className="px-3 py-2">{u.percent != null ? `${u.percent}%` : "-"}</td>
+                      <td className="px-3 py-2">
+                        <Button onClick={async () => {
+                          try {
+                            setErr("");
+                            await api.userComputeMatch(u.external_user_id);
+                            await loadList();
+                          } catch (e: any) {
+                            setErr(e.message || String(e));
+                          }
+                        }}>Compute</Button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((u) => (
-                      <tr key={u.external_user_id} className="hover:bg-slate-50">
-                        <td className="px-3 py-2 font-medium text-slate-900">{u.external_user_id}</td>
-                        <td className="px-3 py-2">{u.doc_uploaded ? "Yes" : "No"}</td>
-                        <td className="px-3 py-2">{u.kyc_uploaded ? "Yes" : "No"}</td>
-                        <td className="px-3 py-2">{u.percent != null ? `${u.percent}%` : "-"}</td>
-                        <td className="px-3 py-2">
-                          <Button onClick={async () => {
-                            try {
-                              setErr("");
-                              await api.userComputeMatch(u.external_user_id);
-                              await loadList();
-                            } catch (e: any) {
-                              setErr(e.message || String(e));
-                            }
-                          }}>Compute</Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardBody>
-        </Card>
-
-        {/* Details pane removed in user summary view */}
-      </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardBody>
+      </Card>
     </div>
   );
 }

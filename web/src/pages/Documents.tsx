@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { api, type DocumentType } from "../api";
 import { Alert, Button, Field, Input, Label, Section, Select, Spinner } from "../components/ui";
-import { useLocalStorage } from "../lib/useLocalStorage";
 
 export function DocumentsPage() {
-  const [sessionId, setSessionId] = useLocalStorage<number | null>("kyc.sessionId", null);
+  const [userId, setUserId] = useState<string>("");
   const [docType, setDocType] = useState<DocumentType>("PASSPORT");
   const [docKey, setDocKey] = useState("docs/passport_1.jpg");
   const [msg, setMsg] = useState("");
@@ -17,8 +16,9 @@ export function DocumentsPage() {
       setErr("");
       setMsg("");
       setLoading((s) => ({ ...s, register: true }));
-      if (sessionId == null) return;
-      await api.addDocument(sessionId, docType, docKey);
+      if (!userId) throw new Error("Enter user_id first");
+      const s = await api.createSession(userId);
+      await api.addDocument(s.id, docType, docKey);
       setMsg("Document registered.");
     } catch (e: any) {
       setErr(e.message || String(e));
@@ -28,12 +28,14 @@ export function DocumentsPage() {
   }
 
   async function onUploadDoc() {
-    if (!docFile || sessionId == null) return;
+    if (!docFile) return;
     try {
       setErr("");
       setMsg("");
       setLoading((s) => ({ ...s, upload: true }));
-      const res = await api.uploadDocumentImage(sessionId, docFile);
+      if (!userId) throw new Error("Enter user_id first");
+      const s = await api.createSession(userId);
+      const res = await api.uploadDocumentImage(s.id, docFile);
       setMsg(`Document image uploaded${res.embedding_dim ? ", embedding dim=" + res.embedding_dim : ""}.`);
     } catch (e: any) {
       setErr(e.message || String(e));
@@ -52,8 +54,8 @@ export function DocumentsPage() {
       <Section title="Register Document Metadata">
         <div className="grid gap-4 sm:grid-cols-3">
           <Field>
-            <Label>session_id</Label>
-            <Input type="number" value={sessionId ?? ""} onChange={(e) => setSessionId(e.target.value ? Number(e.target.value) : null)} />
+            <Label>user_id</Label>
+            <Input value={userId} onChange={(e) => setUserId(e.target.value)} />
           </Field>
 
           <Field>
@@ -73,7 +75,7 @@ export function DocumentsPage() {
         </div>
 
         <div className="mt-4">
-          <Button onClick={onRegister} disabled={sessionId == null || !docKey || loading.register}>
+          <Button onClick={onRegister} disabled={!userId || !docKey || loading.register}>
             {loading.register ? (<><Spinner className="mr-2"/>Saving...</>) : "Register Document"}
           </Button>
         </div>
@@ -86,7 +88,7 @@ export function DocumentsPage() {
             <input type="file" accept="image/*" onChange={(e) => setDocFile(e.target.files?.[0] || null)} />
           </Field>
           <div className="flex items-end">
-            <Button onClick={onUploadDoc} disabled={sessionId == null || !docFile || loading.upload}>
+            <Button onClick={onUploadDoc} disabled={!userId || !docFile || loading.upload}>
               {loading.upload ? (<><Spinner className="mr-2"/>Uploading...</>) : "Upload & Embed"}
             </Button>
           </div>
