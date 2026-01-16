@@ -35,7 +35,7 @@ export function DocumentsPage() {
       {err ? <Alert variant="error">{err}</Alert> : null}
       {msg ? <Alert variant="success">{msg}</Alert> : null}
 
-      <Section title="Upload Document (front with face)">
+      <Section title="Upload Document">
         <div className="grid gap-4 sm:grid-cols-3">
           <Field className="sm:col-span-3">
             <Label>User Id</Label>
