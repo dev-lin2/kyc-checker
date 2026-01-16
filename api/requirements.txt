@@ -14,5 +14,8 @@ pillow==11.1.0
 opencv-python-headless==4.10.0.84
 onnxruntime==1.17.3
 
+# Managed face pipeline (downloads model at runtime)
+insightface==0.7.3
+
 # Optional: full face embeddings via InsightFace
 # insightface==0.7.3

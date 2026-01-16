@@ -11,10 +11,11 @@ import cv2  # type: ignore
 
 _face_sess: Optional[ort.InferenceSession] = None
 _clip_sess: Optional[ort.InferenceSession] = None
+_insight_app = None
 
 
 def _lazy_init():
-    global _face_sess, _clip_sess
+    global _face_sess, _clip_sess, _insight_app
     models_dir = Path("models")
     face_model = models_dir / "face.onnx"
     clip_model = models_dir / "clip_image.onnx"
@@ -27,6 +28,15 @@ def _lazy_init():
 
     if _clip_sess is None and clip_model.exists():
         _clip_sess = ort.InferenceSession(str(clip_model), sess_options=sess_opts, providers=["CPUExecutionProvider"])
+    # Try InsightFace runtime
+    if _insight_app is None:
+        try:
+            from insightface.app import FaceAnalysis  # type: ignore
+            app = FaceAnalysis(name="buffalo_l")
+            app.prepare(ctx_id=0, det_size=(640, 640))
+            _insight_app = app
+        except Exception:
+            _insight_app = None
 
 
 def _imdecode_rgb(image_bytes: bytes) -> np.ndarray:
@@ -44,31 +54,61 @@ def _normalize(x: np.ndarray, mean: tuple[float, float, float], std: tuple[float
     return x
 
 
+def _detect_face_bbox(rgb: "np.ndarray") -> Optional[tuple[int, int, int, int]]:
+    """Detect a face bounding box using Haar cascade. Returns (x, y, w, h) or None."""
+    gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+    try:
+        cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+        face_cascade = cv2.CascadeClassifier(cascade_path)
+        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(60, 60))
+        if len(faces) == 0:
+            return None
+        # Pick the largest face
+        x, y, w, h = max(faces, key=lambda b: b[2] * b[3])
+        # Add a small margin
+        pad = int(0.15 * max(w, h))
+        x0 = max(0, x - pad)
+        y0 = max(0, y - pad)
+        x1 = min(rgb.shape[1], x + w + pad)
+        y1 = min(rgb.shape[0], y + h + pad)
+        return (x0, y0, x1 - x0, y1 - y0)
+    except Exception:
+        return None
+
+
 def compute_face_embedding(image_bytes: bytes) -> Optional[List[float]]:
-    """Compute face embedding using ONNX model at models/face.onnx.
-    Expects input 1x3x112x112 or 1x3x224x224 depending on model.
-    Returns list[float] or raises if not possible.
+    """Compute face embedding using InsightFace if available, otherwise local ONNX model.
+    Raises if no face detected / model unavailable.
     """
     _lazy_init()
-    if _face_sess is None:
-        raise RuntimeError("Face ONNX model not found at models/face.onnx")
-
     rgb = _imdecode_rgb(image_bytes)
-    # Center-crop square and resize to 112x112 (common for ArcFace)
-    h, w, _ = rgb.shape
-    side = min(h, w)
-    y0 = (h - side) // 2
-    x0 = (w - side) // 2
-    crop = rgb[y0:y0 + side, x0:x0 + side]
+
+    # InsightFace path
+    if _insight_app is not None:
+        faces = _insight_app.get(rgb)
+        if faces:
+            emb = faces[0].embedding
+            if emb is not None:
+                import numpy as _np  # type: ignore
+                v = _np.asarray(emb, dtype=_np.float32)
+                n = float(_np.linalg.norm(v) + 1e-8)
+                return (v / n).tolist()
+        raise RuntimeError("No face detected in image")
+
+    # ONNX fallback
+    if _face_sess is None:
+        raise RuntimeError("Face model not available (InsightFace/ONNX)")
+    bbox = _detect_face_bbox(rgb)
+    if not bbox:
+        raise RuntimeError("No face detected in image")
+    x, y, w, h = bbox
+    crop = rgb[y:y + h, x:x + w]
     inp = cv2.resize(crop, (112, 112), interpolation=cv2.INTER_AREA)
     inp = _normalize(inp, (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     inp = np.transpose(inp, (2, 0, 1))[None, ...].astype(np.float32)
-
-    # Infer: try to find the first input name automatically
     input_name = _face_sess.get_inputs()[0].name
     out = _face_sess.run(None, {input_name: inp})
     vec = out[0].squeeze().astype(np.float32)
-    # L2 normalize
     norm = np.linalg.norm(vec) + 1e-8
     vec = vec / norm
     return vec.tolist()
@@ -100,4 +140,3 @@ def compute_document_embedding(image_bytes: bytes) -> List[float]:
     norm = np.linalg.norm(vec) + 1e-8
     vec = vec / norm
     return vec.tolist()
-

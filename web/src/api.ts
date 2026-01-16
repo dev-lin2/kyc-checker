@@ -41,6 +41,13 @@ export type SessionListOut = {
   offset: number;
 };
 
+export type UserSummary = {
+  external_user_id: string;
+  doc_uploaded: boolean;
+  kyc_uploaded: boolean;
+  percent: number | null;
+};
+
 async function http<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
@@ -107,5 +114,29 @@ export const api = {
       throw new Error(`${res.status} ${res.statusText} ${text}`);
     }
     return res.json() as Promise<{ ok: boolean; embedding_dim?: number; message?: string; file_key?: string }>;
+  },
+  computeMatch: async (id: number) => {
+    const res = await fetch(`${API_BASE}/sessions/${id}/match/compute`, { method: "POST" });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`${res.status} ${res.statusText} ${text}`);
+    }
+    return res.json() as Promise<{ ok: boolean; score?: number; percent?: number; message?: string }>;
+  },
+  listUserSummary: async () => {
+    const res = await fetch(`${API_BASE}/users/summary`);
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`${res.status} ${res.statusText} ${text}`);
+    }
+    return res.json() as Promise<{ items: UserSummary[] }>;
+  },
+  userComputeMatch: async (external_user_id: string) => {
+    const res = await fetch(`${API_BASE}/users/${encodeURIComponent(external_user_id)}/match/compute`, { method: "POST" });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`${res.status} ${res.statusText} ${text}`);
+    }
+    return res.json() as Promise<{ ok: boolean; score?: number; percent?: number; message?: string }>;
   },
 };

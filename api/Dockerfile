@@ -23,8 +23,14 @@ ARG FACE_MODEL_URL=""
 ARG CLIP_IMAGE_MODEL_URL=""
 RUN set -eux; \
     mkdir -p /app/models; \
-    if [ -n "$FACE_MODEL_URL" ]; then curl -L "$FACE_MODEL_URL" -o /app/models/face.onnx; fi; \
-    if [ -n "$CLIP_IMAGE_MODEL_URL" ]; then curl -L "$CLIP_IMAGE_MODEL_URL" -o /app/models/clip_image.onnx; fi
+    if [ -n "$FACE_MODEL_URL" ]; then \
+      echo "Downloading face model from $FACE_MODEL_URL"; \
+      curl -fL "$FACE_MODEL_URL" -o /app/models/face.onnx || echo "Face model URL not reachable; skipping."; \
+    fi; \
+    if [ -n "$CLIP_IMAGE_MODEL_URL" ]; then \
+      echo "Downloading CLIP image model from $CLIP_IMAGE_MODEL_URL"; \
+      curl -fL "$CLIP_IMAGE_MODEL_URL" -o /app/models/clip_image.onnx || echo "CLIP model URL not reachable; skipping."; \
+    fi
 
 COPY . .
 

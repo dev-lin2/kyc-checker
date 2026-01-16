@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { api, type SessionDetailOut, type SessionOut } from "../api";
+import { api, type UserSummary } from "../api";
 import { Alert, Button, Card, CardBody, CardHeader, CardTitle, Field, Input, Label } from "../components/ui";
 
 export function StatusPage() {
-  const [items, setItems] = useState<SessionOut[]>([]);
-  const [selected, setSelected] = useState<SessionDetailOut | null>(null);
+  const [items, setItems] = useState<UserSummary[]>([]);
+  // no selected state in this view
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -13,7 +13,7 @@ export function StatusPage() {
     setErr("");
     setLoading(true);
     try {
-      const res = await api.listSessions(25, 0);
+      const res = await api.listUserSummary();
       setItems(res.items);
     } catch (e: any) {
       setErr(e.message || String(e));
@@ -22,15 +22,7 @@ export function StatusPage() {
     }
   }
 
-  async function loadDetail(id: number) {
-    setErr("");
-    try {
-      const d = await api.getSession(id);
-      setSelected(d);
-    } catch (e: any) {
-      setErr(e.message || String(e));
-    }
-  }
+  // no detail loader in this view
 
   useEffect(() => {
     loadList();
@@ -39,12 +31,7 @@ export function StatusPage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return items;
-    return items.filter(
-      (s) =>
-        String(s.id).includes(q) ||
-        s.external_user_id.toLowerCase().includes(q) ||
-        s.status.toLowerCase().includes(q)
-    );
+    return items.filter((u) => u.external_user_id.toLowerCase().includes(q));
   }, [items, query]);
 
   return (
@@ -60,7 +47,7 @@ export function StatusPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Sessions</CardTitle>
+              <CardTitle>Users</CardTitle>
               <div className="w-60">
                 <Field>
                   <Label>Search</Label>
@@ -79,19 +66,31 @@ export function StatusPage() {
                 <table className="min-w-full text-sm">
                   <thead className="bg-slate-50 text-left text-slate-600">
                     <tr>
-                      <th className="px-3 py-2 font-medium">ID</th>
-                      <th className="px-3 py-2 font-medium">External User</th>
-                      <th className="px-3 py-2 font-medium">Status</th>
-                      <th className="px-3 py-2 font-medium">Created</th>
+                      <th className="px-3 py-2 font-medium">User ID</th>
+                      <th className="px-3 py-2 font-medium">Doc Uploaded</th>
+                      <th className="px-3 py-2 font-medium">KYC Uploaded</th>
+                      <th className="px-3 py-2 font-medium">Percent</th>
+                      <th className="px-3 py-2 font-medium">Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((s) => (
-                      <tr key={s.id} className="hover:bg-slate-50 cursor-pointer" onClick={() => loadDetail(s.id)}>
-                        <td className="px-3 py-2 font-medium text-slate-900">#{s.id}</td>
-                        <td className="px-3 py-2">{s.external_user_id}</td>
-                        <td className="px-3 py-2 text-xs text-slate-700">{s.status}</td>
-                        <td className="px-3 py-2 text-xs text-slate-600">{new Date(s.created_at).toLocaleString()}</td>
+                    {filtered.map((u) => (
+                      <tr key={u.external_user_id} className="hover:bg-slate-50">
+                        <td className="px-3 py-2 font-medium text-slate-900">{u.external_user_id}</td>
+                        <td className="px-3 py-2">{u.doc_uploaded ? "Yes" : "No"}</td>
+                        <td className="px-3 py-2">{u.kyc_uploaded ? "Yes" : "No"}</td>
+                        <td className="px-3 py-2">{u.percent != null ? `${u.percent}%` : "-"}</td>
+                        <td className="px-3 py-2">
+                          <Button onClick={async () => {
+                            try {
+                              setErr("");
+                              await api.userComputeMatch(u.external_user_id);
+                              await loadList();
+                            } catch (e: any) {
+                              setErr(e.message || String(e));
+                            }
+                          }}>Compute</Button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -101,16 +100,7 @@ export function StatusPage() {
           </CardBody>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Details</CardTitle>
-          </CardHeader>
-          <CardBody>
-            <pre className="max-h-[520px] overflow-auto rounded-lg bg-slate-50 p-3 text-xs text-slate-800">
-              {selected ? JSON.stringify(selected, null, 2) : "Select a session"}
-            </pre>
-          </CardBody>
-        </Card>
+        {/* Details pane removed in user summary view */}
       </div>
     </div>
   );
