@@ -40,7 +40,7 @@ docker compose -f docker-compose.staging.yml build
 # Run stack (includes DB, API, and Nginx serving built web)
 docker compose -f docker-compose.staging.yml up -d
 
-# Web: http://<server>:8080
+# Web: http://<server>:8123
 ```
 
 Push to your registry for pull‑based deploys:
@@ -73,4 +73,3 @@ Troubleshooting
 - Uploads: Nginx allows bodies up to 50 MB.
 - DB reset: `docker compose down -v` (removes volumes) then `docker compose up -d`.
 - Health: `http://localhost:8080/api/health` should return `{ "ok": true }`.
-
