@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api } from "../api";
-import { Alert, Button, Field, Input, Label, Section, Spinner } from "../components/ui";
 import { KycRecorder } from "../components/KycRecorder";
+import { Alert, Button, Field, Input, Label, Section, Spinner } from "../components/ui";
 
 export function KycPage() {
   const [externalUserId, setExternalUserId] = useState("user_123");
@@ -33,7 +33,7 @@ export function KycPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-slate-900">KYC Workflow</h1>
+      <h1 className="text-2xl font-semibold text-slate-900">KYC Upload</h1>
 
       {err ? <Alert variant="error">{err}</Alert> : null}
       {msg ? <Alert variant="success">{msg}</Alert> : null}
@@ -41,7 +41,7 @@ export function KycPage() {
       <Section title="1) Start">
         <div className="grid gap-3 sm:grid-cols-3">
           <Field className="sm:col-span-2">
-            <Label>external_user_id</Label>
+            <Label>User Id</Label>
             <Input value={externalUserId} onChange={(e) => setExternalUserId(e.target.value)} />
           </Field>
           <div className="flex items-end">

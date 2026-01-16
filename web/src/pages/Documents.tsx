@@ -30,7 +30,7 @@ export function DocumentsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-slate-900">Document Metadata</h1>
+      <h1 className="text-2xl font-semibold text-slate-900">Document Upload</h1>
 
       {err ? <Alert variant="error">{err}</Alert> : null}
       {msg ? <Alert variant="success">{msg}</Alert> : null}
@@ -38,36 +38,16 @@ export function DocumentsPage() {
       <Section title="Upload Document (front with face)">
         <div className="grid gap-4 sm:grid-cols-3">
           <Field className="sm:col-span-3">
-            <Label>user_id</Label>
+            <Label>User Id</Label>
             <Input value={userId} onChange={(e) => setUserId(e.target.value)} />
           </Field>
-          <Field className="sm:col-span-3">
-            <Label>image</Label>
-            <div
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                const f = e.dataTransfer.files?.[0];
-                if (f) setDocFile(f);
-              }}
-              className="mt-1 flex h-32 w-full items-center justify-center rounded-lg border border-dashed text-sm text-slate-600"
-            >
-              {docFile ? docFile.name : "Drag & drop image here or click below"}
-            </div>
-            <input className="mt-2" type="file" accept="image/*" onChange={(e) => setDocFile(e.target.files?.[0] || null)} />
-          </Field>
-          <div className="flex items-end">
-            <Button onClick={onUploadDoc} disabled={!userId || !docFile || loading.upload}>
-              {loading.upload ? (<><Spinner className="mr-2"/>Uploading...</>) : "Upload & Embed"}
-            </Button>
-          </div>
         </div>
       </Section>
 
       <Section title="Upload Document Image (embedding)">
         <div className="grid gap-4 sm:grid-cols-3">
           <Field className="sm:col-span-2">
-            <Label>image file</Label>
+            <Label>Image file</Label>
             <input type="file" accept="image/*" onChange={(e) => setDocFile(e.target.files?.[0] || null)} />
           </Field>
           <div className="flex items-end">
