@@ -1,7 +1,7 @@
 # api/app/schemas.py
 from datetime import datetime
 from pydantic import BaseModel, Field
-from .models import KycStatus, DocumentType, Decision
+from .models import KycStatus, DocumentType, Decision, EmbeddingKind
 
 class SessionCreate(BaseModel):
     external_user_id: str = Field(min_length=1, max_length=100)
@@ -52,3 +52,19 @@ class SessionDetailOut(SessionOut):
     documents: list[DocumentOut] = []
     liveness: LivenessOut | None = None
     result: ResultOut | None = None
+
+
+class EmbeddingOut(BaseModel):
+    id: int
+    session_id: int
+    kind: EmbeddingKind
+    file_key: str | None
+    dim: int
+    created_at: datetime
+
+
+class SessionListOut(BaseModel):
+    items: list[SessionOut]
+    total: int
+    limit: int
+    offset: int

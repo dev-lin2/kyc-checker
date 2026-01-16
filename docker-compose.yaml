@@ -9,21 +9,31 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kyc -d kyc"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
 
   api:
-    image: python:3.11-slim
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    image: kyc-api:dev
     working_dir: /app
     volumes:
       - ./api:/app
     environment:
       DATABASE_URL: postgresql+psycopg://kyc:kyc_password@db:5432/kyc
-    command: >
-      sh -c "pip install --no-cache-dir -r requirements.txt
-      && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
     expose:
       - "8000"
+    ports:
+      - "8000:8000"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    restart: unless-stopped
 
   web:
     image: node:20-alpine
@@ -35,6 +45,7 @@ services:
       - "5173"
     depends_on:
       - api
+    restart: unless-stopped
 
   nginx:
     image: nginx:alpine
@@ -45,6 +56,7 @@ services:
     depends_on:
       - web
       - api
+    restart: unless-stopped
 
 volumes:
   pgdata:

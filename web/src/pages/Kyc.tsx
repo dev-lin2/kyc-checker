@@ -1,185 +1,80 @@
 import { useState } from "react";
-import { api, type Decision } from "../api";
+import { api } from "../api";
+import { Alert, Button, Field, Input, Label, Section, Spinner } from "../components/ui";
+import { useLocalStorage } from "../lib/useLocalStorage";
+import { KycRecorder } from "../components/KycRecorder";
 
 export function KycPage() {
   const [externalUserId, setExternalUserId] = useState("user_123");
-  const [sessionId, setSessionId] = useState<number | null>(null);
+  const [sessionId, setSessionId] = useLocalStorage<number | null>("kyc.sessionId", null);
 
-  const [videoKey, setVideoKey] = useState("liveness/video_1.webm");
-
-  const [matchScore, setMatchScore] = useState(0.45);
-  const [matchPercent, setMatchPercent] = useState(72);
-
-  const [decision, setDecision] = useState<Decision>("APPROVED");
-  const [note, setNote] = useState("looks ok");
+  // const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
 
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+  const [loading, setLoading] = useState<{create?: boolean; upload?: boolean}>({});
 
   async function createSession() {
     try {
       setErr("");
       setMsg("");
+      setLoading((s) => ({ ...s, create: true }));
       const s = await api.createSession(externalUserId);
       setSessionId(s.id);
       setMsg(`Session created: ${s.id}`);
     } catch (e: any) {
       setErr(e.message || String(e));
+    } finally {
+      setLoading((s) => ({ ...s, create: false }));
     }
   }
 
-  async function registerLiveness() {
-    if (!sessionId) return;
-    try {
-      setErr("");
-      setMsg("");
-      await api.setLiveness(sessionId, videoKey);
-      setMsg("Liveness registered.");
-    } catch (e: any) {
-      setErr(e.message || String(e));
-    }
-  }
-
-  async function saveMatch() {
-    if (!sessionId) return;
-    try {
-      setErr("");
-      setMsg("");
-      await api.setMatch(sessionId, Number(matchScore), Number(matchPercent), "mvp-v1");
-      setMsg("Match saved. Status: READY_FOR_REVIEW");
-    } catch (e: any) {
-      setErr(e.message || String(e));
-    }
-  }
-
-  async function submitDecision() {
-    if (!sessionId) return;
-    try {
-      setErr("");
-      setMsg("");
-      await api.decide(sessionId, decision, note);
-      setMsg(`Decision saved: ${decision}`);
-    } catch (e: any) {
-      setErr(e.message || String(e));
-    }
-  }
+  // upload handled inside KycRecorder's onSubmit
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold text-slate-900">KYC</h1>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-semibold text-slate-900">KYC Workflow</h1>
 
-      {err ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{err}</div> : null}
-      {msg ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">{msg}</div> : null}
+      {err ? <Alert variant="error">{err}</Alert> : null}
+      {msg ? <Alert variant="success">{msg}</Alert> : null}
 
-      <div className="rounded-xl border bg-white p-4 space-y-4">
+      <Section title="1) Create Session">
         <div className="grid gap-3 sm:grid-cols-3">
-          <div className="sm:col-span-2">
-            <label className="text-sm text-slate-600">external_user_id</label>
-            <input
-              className="mt-1 w-full rounded-lg border px-3 py-2"
-              value={externalUserId}
-              onChange={(e) => setExternalUserId(e.target.value)}
-            />
-          </div>
+          <Field className="sm:col-span-2">
+            <Label>external_user_id</Label>
+            <Input value={externalUserId} onChange={(e) => setExternalUserId(e.target.value)} />
+          </Field>
           <div className="flex items-end">
-            <button
-              onClick={createSession}
-              className="w-full rounded-lg bg-slate-900 px-4 py-2 text-white hover:bg-slate-800"
-            >
-              Create Session
-            </button>
+            <Button className="w-full" onClick={createSession} disabled={loading.create}>
+              {loading.create ? (<><Spinner className="mr-2"/>Creating...</>) : "Create Session"}
+            </Button>
           </div>
         </div>
-
-        <div className="text-sm text-slate-700">
+        <div className="mt-2 text-sm text-slate-700">
           session_id: <span className="font-semibold">{sessionId ?? "-"}</span>
         </div>
+      </Section>
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="sm:col-span-3">
-            <label className="text-sm text-slate-600">liveness video_key</label>
-            <input
-              className="mt-1 w-full rounded-lg border px-3 py-2"
-              value={videoKey}
-              onChange={(e) => setVideoKey(e.target.value)}
-            />
-          </div>
-          <div className="sm:col-span-3">
-            <button
-              disabled={!sessionId}
-              onClick={registerLiveness}
-              className="rounded-lg bg-slate-900 px-4 py-2 text-white hover:bg-slate-800 disabled:opacity-50"
-            >
-              Register Liveness
-            </button>
-          </div>
-        </div>
+      {sessionId ? (
+        <Section title="2) Liveness Recording (video)">
+          <KycRecorder onSubmit={async (blob) => {
+            if (!sessionId) { setErr("Create session first"); return; }
+            try {
+              setErr("");
+              setMsg("");
+              setLoading((s) => ({ ...s, upload: true }));
+              const res = await api.uploadLivenessVideo(sessionId, blob);
+              setMsg(`Liveness video uploaded. ${res.ok ? "" : res.message || ""}`);
+            } catch (e: any) {
+              setErr(e.message || String(e));
+            } finally {
+              setLoading((s) => ({ ...s, upload: false }));
+            }
+          }} />
+        </Section>
+      ) : null}
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div>
-            <label className="text-sm text-slate-600">match_score</label>
-            <input
-              className="mt-1 w-full rounded-lg border px-3 py-2"
-              type="number"
-              step="0.01"
-              value={matchScore}
-              onChange={(e) => setMatchScore(Number(e.target.value))}
-            />
-          </div>
-          <div>
-            <label className="text-sm text-slate-600">match_percent</label>
-            <input
-              className="mt-1 w-full rounded-lg border px-3 py-2"
-              type="number"
-              step="1"
-              value={matchPercent}
-              onChange={(e) => setMatchPercent(Number(e.target.value))}
-            />
-          </div>
-          <div className="flex items-end">
-            <button
-              disabled={!sessionId}
-              onClick={saveMatch}
-              className="w-full rounded-lg bg-slate-900 px-4 py-2 text-white hover:bg-slate-800 disabled:opacity-50"
-            >
-              Save Match
-            </button>
-          </div>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div>
-            <label className="text-sm text-slate-600">decision</label>
-            <select
-              className="mt-1 w-full rounded-lg border px-3 py-2"
-              value={decision}
-              onChange={(e) => setDecision(e.target.value as Decision)}
-            >
-              <option value="APPROVED">APPROVED</option>
-              <option value="REJECTED">REJECTED</option>
-              <option value="NEEDS_RETRY">NEEDS_RETRY</option>
-            </select>
-          </div>
-          <div className="sm:col-span-2">
-            <label className="text-sm text-slate-600">operator note</label>
-            <input
-              className="mt-1 w-full rounded-lg border px-3 py-2"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
-          </div>
-          <div className="sm:col-span-3">
-            <button
-              disabled={!sessionId}
-              onClick={submitDecision}
-              className="rounded-lg bg-slate-900 px-4 py-2 text-white hover:bg-slate-800 disabled:opacity-50"
-            >
-              Submit Decision
-            </button>
-          </div>
-        </div>
-      </div>
+      
     </div>
   );
 }
-

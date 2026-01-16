@@ -78,4 +78,34 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ operator_decision, operator_note: operator_note ?? null }),
     }),
+  uploadFaceImage: async (id: number, file: Blob) => {
+    const form = new FormData();
+    form.append("file", file, "frame.jpg");
+    const res = await fetch(`${API_BASE}/sessions/${id}/face-image`, { method: "POST", body: form });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`${res.status} ${res.statusText} ${text}`);
+    }
+    return res.json() as Promise<{ ok: boolean; embedding_dim?: number; message?: string; file_key?: string }>;
+  },
+  uploadLivenessVideo: async (id: number, file: Blob) => {
+    const form = new FormData();
+    form.append("file", file, "liveness.webm");
+    const res = await fetch(`${API_BASE}/sessions/${id}/liveness-video`, { method: "POST", body: form });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`${res.status} ${res.statusText} ${text}`);
+    }
+    return res.json() as Promise<{ ok: boolean; message?: string; file_key?: string }>;
+  },
+  uploadDocumentImage: async (id: number, file: Blob) => {
+    const form = new FormData();
+    form.append("file", file, "document.jpg");
+    const res = await fetch(`${API_BASE}/sessions/${id}/document-image`, { method: "POST", body: form });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`${res.status} ${res.statusText} ${text}`);
+    }
+    return res.json() as Promise<{ ok: boolean; embedding_dim?: number; message?: string; file_key?: string }>;
+  },
 };

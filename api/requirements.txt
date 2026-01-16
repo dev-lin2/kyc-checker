@@ -6,3 +6,13 @@ sqlalchemy==2.0.36
 psycopg[binary]==3.2.3
 alembic==1.14.0
 pydantic==2.10.3
+pydantic-settings==2.6.1
+
+# Pin numpy < 2 to satisfy onnxruntime wheels
+numpy==1.26.4
+pillow==11.1.0
+opencv-python-headless==4.10.0.84
+onnxruntime==1.17.3
+
+# Optional: full face embeddings via InsightFace
+# insightface==0.7.3

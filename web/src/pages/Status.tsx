@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api, type SessionDetailOut, type SessionOut } from "../api";
+import { Alert, Button, Card, CardBody, CardHeader, CardTitle, Field, Input, Label } from "../components/ui";
 
 export function StatusPage() {
   const [items, setItems] = useState<SessionOut[]>([]);
   const [selected, setSelected] = useState<SessionDetailOut | null>(null);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
 
   async function loadList() {
     setErr("");
@@ -34,55 +36,82 @@ export function StatusPage() {
     loadList();
   }, []);
 
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter(
+      (s) =>
+        String(s.id).includes(q) ||
+        s.external_user_id.toLowerCase().includes(q) ||
+        s.status.toLowerCase().includes(q)
+    );
+  }, [items, query]);
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-slate-900">Status</h1>
-        <button
-          onClick={loadList}
-          className="rounded-lg bg-slate-900 px-4 py-2 text-white hover:bg-slate-800"
-        >
-          Refresh
-        </button>
+        <Button onClick={loadList}>Refresh</Button>
       </div>
 
-      {err ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{err}</div> : null}
+      {err ? <Alert variant="error">{err}</Alert> : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-xl border bg-white p-4">
-          <h2 className="text-lg font-semibold text-slate-900">Sessions</h2>
-          {loading ? (
-            <div className="mt-3 text-sm text-slate-600">Loading...</div>
-          ) : items.length === 0 ? (
-            <div className="mt-3 text-sm text-slate-600">No sessions.</div>
-          ) : (
-            <ul className="mt-3 space-y-2">
-              {items.map((s) => (
-                <li key={s.id}>
-                  <button
-                    onClick={() => loadDetail(s.id)}
-                    className="w-full rounded-lg border px-3 py-2 text-left hover:bg-slate-50"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="font-medium text-slate-900">#{s.id} {s.external_user_id}</div>
-                      <div className="text-xs text-slate-600">{s.status}</div>
-                    </div>
-                    <div className="mt-1 text-xs text-slate-500">{new Date(s.created_at).toLocaleString()}</div>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Sessions</CardTitle>
+              <div className="w-60">
+                <Field>
+                  <Label>Search</Label>
+                  <Input placeholder="id, user id, or status" value={query} onChange={(e) => setQuery(e.target.value)} />
+                </Field>
+              </div>
+            </div>
+          </CardHeader>
+          <CardBody>
+            {loading ? (
+              <div className="text-sm text-slate-600">Loading...</div>
+            ) : filtered.length === 0 ? (
+              <div className="text-sm text-slate-600">No sessions.</div>
+            ) : (
+              <div className="overflow-hidden rounded-lg border">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-slate-50 text-left text-slate-600">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">ID</th>
+                      <th className="px-3 py-2 font-medium">External User</th>
+                      <th className="px-3 py-2 font-medium">Status</th>
+                      <th className="px-3 py-2 font-medium">Created</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((s) => (
+                      <tr key={s.id} className="hover:bg-slate-50 cursor-pointer" onClick={() => loadDetail(s.id)}>
+                        <td className="px-3 py-2 font-medium text-slate-900">#{s.id}</td>
+                        <td className="px-3 py-2">{s.external_user_id}</td>
+                        <td className="px-3 py-2 text-xs text-slate-700">{s.status}</td>
+                        <td className="px-3 py-2 text-xs text-slate-600">{new Date(s.created_at).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardBody>
+        </Card>
 
-        <div className="rounded-xl border bg-white p-4">
-          <h2 className="text-lg font-semibold text-slate-900">Details</h2>
-          <pre className="mt-3 max-h-[520px] overflow-auto rounded-lg bg-slate-50 p-3 text-xs text-slate-800">
-            {selected ? JSON.stringify(selected, null, 2) : "Select a session"}
-          </pre>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Details</CardTitle>
+          </CardHeader>
+          <CardBody>
+            <pre className="max-h-[520px] overflow-auto rounded-lg bg-slate-50 p-3 text-xs text-slate-800">
+              {selected ? JSON.stringify(selected, null, 2) : "Select a session"}
+            </pre>
+          </CardBody>
+        </Card>
       </div>
     </div>
   );
 }
-

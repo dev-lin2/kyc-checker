@@ -78,3 +78,20 @@ class KycResult(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     session: Mapped["KycSession"] = relationship(back_populates="result")
+
+
+class EmbeddingKind(str, enum.Enum):
+    FACE = "FACE"
+    DOCUMENT = "DOCUMENT"
+
+
+class Embedding(Base):
+    __tablename__ = "embeddings"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    session_id: Mapped[int] = mapped_column(ForeignKey("kyc_sessions.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[EmbeddingKind] = mapped_column(Enum(EmbeddingKind))
+    file_key: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    dim: Mapped[int] = mapped_column()
+    vector_json: Mapped[str] = mapped_column(Text)  # store as JSON array
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

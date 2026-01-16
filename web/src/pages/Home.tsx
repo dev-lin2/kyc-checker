@@ -1,28 +1,35 @@
 import { Link } from "@tanstack/react-router";
+import { Card, CardBody, CardHeader, CardTitle } from "../components/ui";
 
 export function HomePage() {
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold text-slate-900">Home</h1>
-
-      <div className="rounded-xl border bg-white p-4">
-        <p className="text-slate-700">
-          MVP pages: create sessions, register document/liveness metadata, view status list.
-        </p>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Link className="rounded-lg bg-slate-900 px-4 py-2 text-white hover:bg-slate-800" to="/documents">
-            Documents
-          </Link>
-          <Link className="rounded-lg bg-slate-900 px-4 py-2 text-white hover:bg-slate-800" to="/kyc">
-            KYC
-          </Link>
-          <Link className="rounded-lg bg-slate-900 px-4 py-2 text-white hover:bg-slate-800" to="/status">
-            Status
-          </Link>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-semibold text-slate-900">KYC MVP</h1>
+      <Card>
+        <CardHeader>
+          <CardTitle>Overview</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <p className="text-slate-700">
+            Create sessions, register document and liveness metadata, save match results, and record
+            an operator decision. Use Status to monitor progress.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <Link className="rounded-lg border p-4 hover:bg-slate-50" to="/documents">
+              <div className="text-sm font-semibold text-slate-900">Documents</div>
+              <div className="mt-1 text-xs text-slate-600">Register document metadata for a session.</div>
+            </Link>
+            <Link className="rounded-lg border p-4 hover:bg-slate-50" to="/kyc">
+              <div className="text-sm font-semibold text-slate-900">KYC</div>
+              <div className="mt-1 text-xs text-slate-600">Create session, liveness, match, decision.</div>
+            </Link>
+            <Link className="rounded-lg border p-4 hover:bg-slate-50" to="/status">
+              <div className="text-sm font-semibold text-slate-900">Status</div>
+              <div className="mt-1 text-xs text-slate-600">List sessions and view details.</div>
+            </Link>
+          </div>
+        </CardBody>
+      </Card>
     </div>
   );
 }
-

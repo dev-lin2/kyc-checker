@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, func, desc
 from fastapi import HTTPException
 
-from .models import KycSession, Document, LivenessArtifact, KycResult, KycStatus
+from .models import KycSession, Document, LivenessArtifact, KycResult, KycStatus, Embedding, EmbeddingKind
+import json
 
 def create_session(db: Session, external_user_id: str) -> KycSession:
     s = KycSession(external_user_id=external_user_id)
@@ -110,3 +111,18 @@ def list_sessions(db: Session, limit: int = 20, offset: int = 0):
         select(KycSession).order_by(desc(KycSession.id)).limit(limit).offset(offset)
     ).scalars().all()
     return items, total
+
+
+def save_embedding(db: Session, session_id: int, kind: EmbeddingKind, vector: list[float], file_key: str | None = None) -> Embedding:
+    # create row; no upsert for now (keep history)
+    e = Embedding(
+        session_id=session_id,
+        kind=kind,
+        dim=len(vector),
+        vector_json=json.dumps(vector),
+        file_key=file_key,
+    )
+    db.add(e)
+    db.commit()
+    db.refresh(e)
+    return e
