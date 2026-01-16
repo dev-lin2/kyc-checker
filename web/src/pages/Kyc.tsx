@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { api } from "../api";
 import { Alert, Button, Field, Input, Label, Section, Spinner } from "../components/ui";
-import { useLocalStorage } from "../lib/useLocalStorage";
 import { KycRecorder } from "../components/KycRecorder";
 
 export function KycPage() {
   const [externalUserId, setExternalUserId] = useState("user_123");
-  const [sessionId, setSessionId] = useLocalStorage<number | null>("kyc.sessionId", null);
+  // No session id in UI flow;
   const [started, setStarted] = useState(false);
 
   // const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
@@ -20,9 +19,8 @@ export function KycPage() {
       setErr("");
       setMsg("");
       setLoading((s) => ({ ...s, create: true }));
-      const s = await api.createSession(externalUserId);
-      setSessionId(s.id);
-      setMsg(`Session created: ${s.id}`);
+      await api.createSession(externalUserId);
+      setMsg(`Started for ${externalUserId}`);
       setStarted(true);
     } catch (e: any) {
       setErr(e.message || String(e));
@@ -57,12 +55,12 @@ export function KycPage() {
       {started ? (
         <Section title="2) Liveness Recording (video)">
           <KycRecorder onSubmit={async (blob) => {
-            if (!sessionId) { setErr("Create session first"); return; }
+            if (!externalUserId) { setErr("Enter user_id first"); return; }
             try {
               setErr("");
               setMsg("");
               setLoading((s) => ({ ...s, upload: true }));
-              const res = await api.uploadLivenessVideo(sessionId, blob);
+              const res = await api.uploadLivenessVideoByUser(externalUserId, blob);
               setMsg(`Liveness video uploaded. ${res.ok ? "" : res.message || ""}`);
             } catch (e: any) {
               setErr(e.message || String(e));

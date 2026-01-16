@@ -126,3 +126,14 @@ def save_embedding(db: Session, session_id: int, kind: EmbeddingKind, vector: li
     db.commit()
     db.refresh(e)
     return e
+
+
+def get_or_create_latest_session(db: Session, external_user_id: str) -> KycSession:
+    s = db.execute(
+        select(KycSession)
+        .where(KycSession.external_user_id == external_user_id)
+        .order_by(desc(KycSession.id))
+    ).scalar_one_or_none()
+    if s:
+        return s
+    return create_session(db, external_user_id)

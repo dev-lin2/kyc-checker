@@ -115,6 +115,26 @@ export const api = {
     }
     return res.json() as Promise<{ ok: boolean; embedding_dim?: number; message?: string; file_key?: string }>;
   },
+  uploadLivenessVideoByUser: async (external_user_id: string, file: Blob) => {
+    const form = new FormData();
+    form.append("file", file, "liveness.webm");
+    const res = await fetch(`${API_BASE}/users/${encodeURIComponent(external_user_id)}/liveness-video`, { method: "POST", body: form });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`${res.status} ${res.statusText} ${text}`);
+    }
+    return res.json() as Promise<{ ok: boolean; message?: string; file_key?: string; embedding_dim?: number }>;
+  },
+  uploadDocumentImageByUser: async (external_user_id: string, file: Blob) => {
+    const form = new FormData();
+    form.append("file", file, "document.jpg");
+    const res = await fetch(`${API_BASE}/users/${encodeURIComponent(external_user_id)}/document-image`, { method: "POST", body: form });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`${res.status} ${res.statusText} ${text}`);
+    }
+    return res.json() as Promise<{ ok: boolean; embedding_dim?: number; message?: string; file_key?: string }>;
+  },
   computeMatch: async (id: number) => {
     const res = await fetch(`${API_BASE}/sessions/${id}/match/compute`, { method: "POST" });
     if (!res.ok) {

@@ -84,6 +84,64 @@ async def upload_face_image(session_id: int, file: UploadFile = File(...), db: S
     return {"ok": True, "file_key": str(dest), "embedding_dim": (len(embedding) if embedding else None), "message": message}
 
 
+# User-centric endpoints (no session_id in request)
+@router.post("/users/{external_user_id}/liveness-video")
+async def user_liveness_video(external_user_id: str, file: UploadFile = File(...), db: Session = Depends(get_db)):
+    """Ensure a session for user_id, store video, and compute FACE embedding."""
+    import time
+    from pathlib import Path
+    import subprocess
+
+    s = functions.get_or_create_latest_session(db, external_user_id)
+    data_dir = Path("data/liveness")
+    data_dir.mkdir(parents=True, exist_ok=True)
+    ts = int(time.time())
+    dest = data_dir / f"user_{external_user_id}_{ts}.webm"
+    content = await file.read()
+    with open(dest, "wb") as f:
+        f.write(content)
+    try:
+        from ..models import EmbeddingKind
+        frame_jpg = data_dir / f"user_{external_user_id}_{ts}.jpg"
+        subprocess.run([
+            "ffmpeg","-y","-i",str(dest),"-vf","thumbnail,scale=640:-1","-frames:v","1",str(frame_jpg)
+        ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if frame_jpg.exists():
+            data = frame_jpg.read_bytes()
+            emb = compute_face_embedding(data)
+            if emb:
+                functions.save_embedding(db, s.id, EmbeddingKind.FACE, emb, str(dest))
+                functions.set_liveness(db, s.id, str(dest))
+                return {"ok": True, "file_key": str(dest), "embedding_dim": len(emb)}
+    except Exception as e:
+        return {"ok": False, "file_key": str(dest), "message": str(e)}
+    return {"ok": False, "file_key": str(dest), "message": "No face detected"}
+
+
+@router.post("/users/{external_user_id}/document-image")
+async def user_document_image(external_user_id: str, file: UploadFile = File(...), db: Session = Depends(get_db)):
+    import time
+    from pathlib import Path
+
+    s = functions.get_or_create_latest_session(db, external_user_id)
+    data_dir = Path("data/docs")
+    data_dir.mkdir(parents=True, exist_ok=True)
+    ts = int(time.time())
+    dest = data_dir / f"user_{external_user_id}_{ts}.jpg"
+    content = await file.read()
+    with open(dest, "wb") as f:
+        f.write(content)
+    try:
+        from ..models import EmbeddingKind
+        emb = compute_face_embedding(content)
+        if not emb:
+            return {"ok": False, "file_key": str(dest), "message": "No face detected on document"}
+        functions.save_embedding(db, s.id, EmbeddingKind.DOCUMENT, emb, str(dest))
+        return {"ok": True, "file_key": str(dest), "embedding_dim": len(emb)}
+    except Exception as e:
+        return {"ok": False, "file_key": str(dest), "message": str(e)}
+
+
 @router.post("/sessions/{session_id}/document-image")
 async def upload_document_image(session_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)):
     # Require a face on the document image (front side)

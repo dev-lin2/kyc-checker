@@ -26,6 +26,10 @@ class Decision(str, enum.Enum):
 
 class KycSession(Base):
     __tablename__ = "kyc_sessions"
+    __table_args__ = (
+        # Enforce one row per user_id (external_user_id)
+        UniqueConstraint("external_user_id", name="uq_kyc_sessions_external_user_id"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     external_user_id: Mapped[str] = mapped_column(String(100), index=True)
